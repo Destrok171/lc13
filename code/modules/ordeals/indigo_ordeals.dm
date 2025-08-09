@@ -104,10 +104,10 @@
 	reward_percent = 0.20
 	color = "#3F00FF"
 	potential_types = list(
-		/mob/living/simple_animal/hostile/ordeal/indigo_dusk/pale,
-		/mob/living/simple_animal/hostile/ordeal/indigo_dusk/red,
-		/mob/living/simple_animal/hostile/ordeal/indigo_dusk/black,
-		/mob/living/simple_animal/hostile/ordeal/indigo_dusk/white
+		/mob/living/simple_animal/hostile/ordeal/indigo_dusk/fighter/pale,
+		/mob/living/simple_animal/hostile/ordeal/indigo_dusk/fighter/red,
+		/mob/living/simple_animal/hostile/ordeal/indigo_dusk/officer/black,
+		/mob/living/simple_animal/hostile/ordeal/indigo_dusk/officer/white
 		)
 	grunttype = list(/mob/living/simple_animal/hostile/ordeal/indigo_noon)
 

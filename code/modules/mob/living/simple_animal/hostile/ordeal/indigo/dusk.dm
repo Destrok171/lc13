@@ -234,6 +234,7 @@
 	var/obj/effect/temp_visual/trash_disposal_telegraph/warning = new /obj/effect/temp_visual/trash_disposal_telegraph(get_turf(user))
 	say("+5363 23 625 513 93477 2576!+")
 	user.visible_message(span_userdanger("[user] prepares to leap at [victim]!"))
+	playsound(src, 'sound/abnormalities/crumbling/warning.ogg', 50, FALSE, 5)
 	walk_towards(warning, victim, 0.1 SECONDS) // This makes our warning move from the commander to the target.
 	SLEEP_CHECK_DEATH(2.3 SECONDS)
 
@@ -393,7 +394,6 @@
 	special_ability_damage = 40
 	guaranteed_butcher_results = list(/obj/item/food/meat/slab/sweeper = 1)
 	var/parrying = FALSE
-	var/parry_shield_visual = null
 	var/parry_stop_timer = null
 
 /mob/living/simple_animal/hostile/ordeal/indigo_dusk/fighter/pale/Initialize(mapload)
@@ -401,13 +401,25 @@
 	if(SSmaptype.maptype in SSmaptype.citymaps)
 		guaranteed_butcher_results += list(/obj/item/head_trophy/indigo_head/pale = 1)
 
+/// Activates parrying behaviour when hit by a simple_animal.
+/mob/living/simple_animal/hostile/ordeal/indigo_dusk/fighter/pale/attack_animal(mob/living/simple_animal/M, damage)
+	// If we're hit in melee by a living mob, while parrying, and are still alive, we retaliate. The attack on us gets cancelled.
+	if(parrying && health > 0 && istype(M))
+		ParryCounter(M)
+		return FALSE
+	. = ..()
+	// If we're hit by a sufficiently strong melee attack, 75% of the time we will go into our parrying stance.
+	if(health > 0 && prob(75))
+		INVOKE_ASYNC(src, PROC_REF(UseSpecialAbility), M, src) // It's ASYNC because there's a sleep in it
+
+/// Activates parrying behaviour when hit by a human with an object.
 /mob/living/simple_animal/hostile/ordeal/indigo_dusk/fighter/pale/attacked_by(obj/item/I, mob/living/user)
 	// If we're hit in melee by a living mob, while parrying, and are still alive, we retaliate. The attack on us gets cancelled.
 	if(parrying && health > 0 && istype(user))
 		ParryCounter(user)
 		return FALSE
 	. = ..()
-	// If we're hit by a sufficiently strong melee attack, 75% of the time we will go into our parrying stance (the attack that prompts us to do this will go through just fine)
+	// If we're hit by a sufficiently strong melee attack, 75% of the time we will go into our parrying stance.
 	if(health > 0 && I.force >= 10 && prob(75))
 		INVOKE_ASYNC(src, PROC_REF(UseSpecialAbility), user, src) // It's ASYNC because there's a sleep in it
 
@@ -437,9 +449,10 @@
 		special_ability_activated = TRUE // This doesn't mean we're parrying just yet.
 		// Telegraph that we're beginning a parry to give players time to stop attacking. We're not actively parrying at this point.
 		say("676 3246!!")
-		visible_message(span_userdanger("[src] enters a defensive stance!"))
-		parry_shield_visual = mutable_appearance('ModularTegustation/Teguicons/tegu_effects.dmi', "pale_shield")
-		add_overlay(parry_shield_visual)
+		visible_message(span_userdanger("[src] enters a parrying stance!"))
+		var/atom/temp = new /obj/effect/temp_visual/markedfordeath(get_turf(src))
+		temp.pixel_y += 16
+		playsound(src, 'sound/abnormalities/crumbling/warning.ogg', 50, FALSE, 3)
 		animate(src, 0.4 SECONDS, color = COLOR_BLUE_LIGHT)
 		SLEEP_CHECK_DEATH(0.7 SECONDS)
 		// Now we actually enter our parry stance.
@@ -450,8 +463,6 @@
 /mob/living/simple_animal/hostile/ordeal/indigo_dusk/fighter/pale/proc/StopParrying(success = FALSE)
 	parrying = FALSE
 	special_ability_activated = FALSE
-	cut_overlay(parry_shield_visual)
-	QDEL_NULL(parry_shield_visual)
 	if(!success)
 		visible_message(span_danger("[src] lowers their defensive stance."))
 	animate(src, 0.5 SECONDS, color = initial(color))
@@ -479,7 +490,7 @@
 
 	// Hit the target.
 	src.do_attack_animation(victim)
-	playsound(src, attack_sound, 100, FALSE)
+	playsound(src, 'sound/abnormalities/crumbling/attack.ogg', 75, FALSE)
 	new /obj/effect/gibspawner/generic/trash_disposal(get_turf(victim))
 	victim.deal_damage(special_ability_damage, melee_damage_type)
 	visible_message(span_userdanger("[src] deflects [victim]'s attack and performs a counter!"))
@@ -526,8 +537,8 @@
 /// The WHITE Commander. This one is able to give Persistence to its underlings periodically.
 /mob/living/simple_animal/hostile/ordeal/indigo_dusk/officer/white
 	name = "\proper Commander Adelheide"
-	maxHealth = 1400
-	health = 1400
+	maxHealth = 1500
+	health = 1500
 	desc = "A tall humanoid with a white greatsword."
 	icon_state = "adelheide"
 	icon_living = "adelheide"
@@ -560,8 +571,8 @@
 /mob/living/simple_animal/hostile/ordeal/indigo_dusk/officer/black
 	name = "\proper Commander Maria"
 	desc = "A tall humanoid with a large black hammer."
-	health = 1300
-	maxHealth = 1300
+	health = 1400
+	maxHealth = 1400
 	icon_state = "maria"
 	icon_living = "maria"
 	melee_damage_type = BLACK_DAMAGE

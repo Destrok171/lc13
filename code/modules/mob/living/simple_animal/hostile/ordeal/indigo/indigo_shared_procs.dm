@@ -43,7 +43,7 @@ Something for a future refactor?
 
 
 /* Persistence Status Effect
- It allows them to avoid death when struck, with some VFX/SFX indicating that it was activated.
+It allows them to avoid death when struck, with some VFX/SFX indicating that it was activated.
 Every time it activates, it loses a stack, but it can also time out over a long period of time.
 */
 

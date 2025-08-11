@@ -10,15 +10,15 @@
 	pixel_x = -15
 	base_pixel_x = -15
 	icon_living = "brz_bull"
-	maxHealth = 850
-	health = 850
+	maxHealth = 1200
+	health = 1200
 	vision_range = 11
 	aggro_vision_range = 17
 	damage_coeff = list(RED_DAMAGE = 0.8, WHITE_DAMAGE = 1.5, BLACK_DAMAGE = 1, PALE_DAMAGE = 2)
-	melee_damage_lower = 6
-	melee_damage_upper = 12
+	melee_damage_lower = 10
+	melee_damage_upper = 16
 	melee_damage_type = RED_DAMAGE
-	rapid_melee = 2
+	rapid_melee = 1.5
 	stat_attack = HARD_CRIT
 	attack_sound = 'sound/weapons/fast_slam.ogg'
 	attack_verb_continuous = "smacks"
@@ -130,9 +130,9 @@
 			playsound(L, attack_sound, 75, 1)
 			new /obj/effect/temp_visual/kinetic_blast(get_turf(L))
 			if(ishuman(L))
-				L.apply_damage(30, RED_DAMAGE, null, L.run_armor_check(null, RED_DAMAGE), spread_damage = TRUE)
+				L.apply_damage(40, RED_DAMAGE, null, L.run_armor_check(null, RED_DAMAGE), spread_damage = TRUE)
 			else
-				L.adjustRedLoss(30)
+				L.adjustRedLoss(40)
 			if(L.stat >= HARD_CRIT)
 				L.gib()
 		for(var/obj/vehicle/V in new_hits)

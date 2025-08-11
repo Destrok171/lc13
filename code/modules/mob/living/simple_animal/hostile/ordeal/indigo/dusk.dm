@@ -235,7 +235,7 @@
 	say("+5363 23 625 513 93477 2576!+")
 	user.visible_message(span_userdanger("[user] prepares to leap at [victim]!"))
 	walk_towards(warning, victim, 0.1 SECONDS) // This makes our warning move from the commander to the target.
-	SLEEP_CHECK_DEATH(2 SECONDS)
+	SLEEP_CHECK_DEATH(2.3 SECONDS)
 
 	can_move = TRUE
 	special_ability_activated = TRUE // While this is active, anyone we get thrown into is fair game for Trash Disposal.
@@ -286,7 +286,7 @@
 			user.visible_message(span_danger("[user] rips into [victim] and refuels themselves with their blood!"))
 			// Ramp up the speed and damage on each hit.
 			time_between_trash_disposal_hits -= 1
-			special_ability_damage += 4
+			special_ability_damage += 3
 			// Devour the victim if we killed them, and end the sequence.
 			if(victim.health <= 0)
 				if(victim.stat != DEAD)
@@ -526,8 +526,8 @@
 /// The WHITE Commander. This one is able to give Persistence to its underlings periodically.
 /mob/living/simple_animal/hostile/ordeal/indigo_dusk/officer/white
 	name = "\proper Commander Adelheide"
-	maxHealth = 1300
-	health = 1300
+	maxHealth = 1400
+	health = 1400
 	desc = "A tall humanoid with a white greatsword."
 	icon_state = "adelheide"
 	icon_living = "adelheide"
@@ -560,8 +560,8 @@
 /mob/living/simple_animal/hostile/ordeal/indigo_dusk/officer/black
 	name = "\proper Commander Maria"
 	desc = "A tall humanoid with a large black hammer."
-	health = 1100
-	maxHealth = 1100
+	health = 1300
+	maxHealth = 1300
 	icon_state = "maria"
 	icon_living = "maria"
 	melee_damage_type = BLACK_DAMAGE

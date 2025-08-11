@@ -2403,15 +2403,16 @@
 
 #define STATUS_EFFECT_GAZE /datum/status_effect/stacking/contempt_weapon_gaze
 #define STATUS_EFFECT_CONTEMPT /datum/status_effect/contempt_weapon_contempt
-/// This weapon is a javelin+spear. You gain Gaze stacks by melee attacking, use it in hand, then throw at an enemy to nuke them.
+/// This weapon is a javelin+spear. You gain Gaze stacks by melee attacking, then throw it at an enemy to nuke them.
 /// At 6 stacks, you'll teleport to the enemy and pick the weapon back up automatically. If you get to 7 stacks, the Gaze stacks turn into Contempt, a huge debuff.
+/// You can clear your stacks of Gaze by using the weapon in-hand. It'll cost some health, though.
 /obj/item/ego_weapon/contempt
 	name = "contempt, awe"
 	desc = "From the excavated brain, geysers of hatred and contempt erupt. It's as if those feelings were inside you all along."
 	special = "Melee hits with this E.G.O. accumulate stacks of Gaze. Each stack of Gaze can be used to raise throwing damage by 15. \n\
 	After spending Gaze, you won't be able to gain any more for 8 seconds.\n\
-	Gaze can be spent by activating this weapon in-hand, then throwing it at an enemy. Landing a thrown hit with 6 stacks of Gaze will teleport you to your enemy and automatically pick up this weapon.\n\
-	If you reach 7 stacks of Gaze, Gaze will transform into Contempt, temporarily slowing you down and lowering your power modifier."
+	Gaze can be spent by throwing this weapon at an enemy. Landing a thrown hit with 6 stacks of Gaze will teleport you to your enemy and automatically pick up this weapon.\n\
+	If you reach 7 stacks of Gaze, Gaze will transform into Contempt, temporarily slowing you down and lowering your power modifier. You can reset your Gaze stacks at the cost of 10 health by using the weapon in-hand."
 	icon_state = "contempt"
 	force = 50
 	reach = 2
@@ -2426,7 +2427,6 @@
 	attribute_requirements = list(
 							FORTITUDE_ATTRIBUTE = 80
 							)
-	var/spending_gaze = FALSE
 	var/toggle_cooldown
 	var/toggle_cooldown_time = 1 SECONDS
 	/// How much throwforce each Gaze stack gives us. Remember that the most Gaze stacks we can have is 6 before they turn into Contempt.
@@ -2461,13 +2461,12 @@
 	if(istype(john_gaze))
 		if(!CanUseEgo(john_gaze))
 			throwforce = 5
-		if(spending_gaze && isliving(hit_atom))
+		if(isliving(hit_atom))
 			var/datum/status_effect/stacking/contempt_weapon_gaze/gaze_stacks = john_gaze.has_status_effect(STATUS_EFFECT_GAZE)
 			if(gaze_stacks)
 				// If we got here, the thrower is a human and has at least 1 gaze stack. We remove them all, go on cooldown, turbo-buff the throwing damage.
 				var/spent_stacks = gaze_stacks.stacks
 				gaze_stacks.add_stacks(-7)
-				spending_gaze = FALSE
 				gaze_gain_cooldown_period = world.time + gaze_gain_cooldown_period_duration
 				throwforce += (force_per_gaze_stack * spent_stacks)
 				. = ..()
@@ -2482,24 +2481,21 @@
 		. = ..()
 		return
 	. = ..()
-/// This override allows users to choose when they want to spend their gaze stacks on throw.
-/obj/item/ego_weapon/contempt/attack_self(mob/user)
+/// This override allows users to reset their gaze stacks, if they have any, at the cost of health.
+/obj/item/ego_weapon/contempt/attack_self(mob/living/user)
 	if(!CanUseEgo(user))
 		return
 	if(toggle_cooldown > world.time)//spam prevention
 		return
 	toggle_cooldown = world.time + toggle_cooldown_time
-	if(!spending_gaze)
-		spending_gaze = TRUE
-		to_chat(user,span_warning("Your [src.name] now drips with blood. You will spend your Gaze stacks the next time you throw this weapon at a target."))
-		playsound(src, 'sound/abnormalities/spiral_contempt/spiral_grow.ogg', 20, FALSE)
-		return
-
-	if(spending_gaze)
-		spending_gaze = FALSE
-		to_chat(user,span_warning("The blood retreats back into your [src.name], leaving only menacing spikes of gold. You will no longer spend Gaze stacks when throwing this weapon."))
-		playsound(src, 'sound/abnormalities/spiral_contempt/spiral_whine.ogg', 20, FALSE)
-		return
+	var/datum/status_effect/stacking/contempt_weapon_gaze/gaze_stacks = user.has_status_effect(STATUS_EFFECT_GAZE)
+	if(gaze_stacks)
+		gaze_stacks.add_stacks(-7)
+		user.adjustBruteLoss(10)
+		playsound(src, 'sound/abnormalities/spiral_contempt/spiral_whine.ogg', 40, FALSE)
+		playsound(src, 'sound/abnormalities/spiral_contempt/spiral_bleed.ogg', 60, FALSE)
+		new /obj/effect/temp_visual/contempt_blood(get_turf(user))
+		user.visible_message(span_danger("[user] slices themselves with [src], their blood siphoning into the spikes!"), span_danger("You slice yourself, using some of your blood to avert your weapon's attentive gaze."))
 
 /// This proc happens when we land a throwing hit with 6 gaze stacks. You get briefly immobilized, teleport in front of the enemy, and pick the weapon back up.
 /obj/item/ego_weapon/contempt/proc/ThrownHitTeleport(mob/living/target, mob/living/carbon/human/user)
@@ -2552,7 +2548,7 @@
 	id = "contempt_weapon_contempt"
 	alert_type = /atom/movable/screen/alert/status_effect/contempt_weapon_contempt
 	duration = 8 SECONDS
-	var/power_malus = 60
+	var/power_malus = 50
 
 /datum/status_effect/contempt_weapon_contempt/on_apply()
 	. = ..()
@@ -2577,7 +2573,7 @@
 
 /datum/movespeed_modifier/contempt_weapon_contempt
 	flags = IS_ACTUALLY_MULTIPLICATIVE
-	multiplicative_slowdown = 1.75
+	multiplicative_slowdown = 1.5
 
 #undef STATUS_EFFECT_GAZE
 #undef STATUS_EFFECT_CONTEMPT

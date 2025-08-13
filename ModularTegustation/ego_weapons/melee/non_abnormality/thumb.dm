@@ -158,6 +158,8 @@
 	var/combo_stage = COMBO_NO_AMMO
 	/// Variable that holds the reset timer for our combo.
 	var/combo_reset_timer
+	/// Variable that holds a timer for the combo expiration warning.
+	var/combo_expiry_warning_timer
 	/// Variable that determines the standard combo reset timer duration. Gets +2s added onto it after COMBO_ATTACK2, so you have more time to do a finisher.
 	var/combo_reset_timer_duration = 5 SECONDS
 	/// List which maps the coefficients by which to multiply our damage on each hit depending on the state of the combo.
@@ -238,7 +240,7 @@
 /obj/item/ego_weapon/city/thumb_east/attack_self(mob/living/user)
 	. = ..()
 	if(!busy)
-		playsound(src, usesound, 100, FALSE)
+		playsound(src, usesound, 80, FALSE)
 		if(combo_enabled)
 			combo_enabled = FALSE
 			to_chat(user, span_info("You are no longer spending ammunition to use combo attacks."))
@@ -336,7 +338,7 @@
 			if(fired_round)
 				hitsound = null
 				. = ..()
-				playsound(src, sweep_sound, 100, FALSE, 14)
+				playsound(src, sweep_sound, 90, FALSE, 10)
 				hitsound = initial(hitsound)
 				user.changeNext_move(CLICK_CD_MELEE * attack_speed * 1.3)
 				RadiusAOE(target, user, COMBO_ATTACK2)
@@ -351,7 +353,7 @@
 		if(COMBO_FINISHER)
 			hitsound = null
 			. = ..()
-			playsound(src, finisher_sound, 100, FALSE, 14)
+			playsound(src, finisher_sound, 90, FALSE, 10)
 			hitsound = initial(hitsound)
 			user.changeNext_move(CLICK_CD_MELEE * attack_speed * 1.2)
 			// We finished the combo! Reset it.
@@ -418,7 +420,7 @@
 	. = ""
 	if(SpendAmmo(user))
 		. = span_danger("[user] fires their [src.name], using the exhaust to nonchalantly light [A]. They don't even flinch from the recoil. Holy shit.")
-		playsound(src, detonation_sound, 100, FALSE, 14)
+		playsound(src, detonation_sound, 90, FALSE, 10)
 	return .
 
 ////////////////////////////////////////////////////////////
@@ -445,7 +447,7 @@
 		var/obj/item/stack/spent_round = pick_n_take(spent_cartridges)
 		if(spent_round)
 			to_chat(user, span_notice("You unload a [spent_round.singular_name] from your [src.name]."))
-			playsound(src, 'sound/weapons/gun/pistol/drop_small.ogg', 100, FALSE)
+			playsound(src, 'sound/weapons/gun/pistol/drop_small.ogg', 90, FALSE)
 			user.put_in_hands(spent_round)
 			VentHeat(user)
 			ReturnToNormal(user)
@@ -456,7 +458,7 @@
 		removeNullsFromList(current_ammo)
 		if(live_round)
 			to_chat(user, span_notice("You unload a [live_round.singular_name] from your [src.name]."))
-			playsound(src, 'sound/weapons/gun/pistol/drop_small.ogg', 100, FALSE)
+			playsound(src, 'sound/weapons/gun/pistol/drop_small.ogg', 90, FALSE)
 			user.put_in_hands(live_round)
 			VentHeat(user)
 			ReturnToNormal(user)
@@ -488,7 +490,7 @@
 /// Channeled process for reloading the weapon. Can be interrupted.
 /obj/item/ego_weapon/city/thumb_east/proc/Reload(amount_to_load, obj/item/stack/thumb_east_ammo/ammo_item, mob/living/carbon/user)
 	// This first section is the reload start. You can cancel it, with the only consequence at this point being that you lose your overheat bonus.
-	playsound(src, reload_start_sound, 100, FALSE, 10)
+	playsound(src, reload_start_sound, 90, FALSE, 10)
 	to_chat(user, span_info("You begin loading your [src.name]..."))
 	VentHeat(user)
 	ReturnToNormal(user)
@@ -516,7 +518,7 @@
 					current_ammo += new_bullet
 					current_ammo_type = ammo_item.type
 					current_ammo_name = ammo_item.name
-					playsound(src, reload_load_sound, 100, FALSE, 8)
+					playsound(src, reload_load_sound, 90, FALSE, 8)
 					to_chat(user, span_info("You load a [ammo_item.singular_name] into the [src.name]."))
 			// If we reach this else block, it means our reload got interrupted in some way, so we drop the ammo we're trying to load into the weapon and scatter it.
 			else
@@ -530,7 +532,7 @@
 		return FALSE
 
 	// We only reach this part if we successfully loaded the rounds we wanted to load. Play the reload_end_sound with a small delay so it sounds nicer.
-	addtimer(CALLBACK(GLOBAL_PROC, GLOBAL_PROC_REF(playsound), src, reload_end_sound, 100, FALSE, 10), 0.2 SECONDS)
+	addtimer(CALLBACK(GLOBAL_PROC, GLOBAL_PROC_REF(playsound), src, reload_end_sound, 90, FALSE, 10), 0.2 SECONDS)
 	return TRUE
 
 /// This proc happens if your reloading gets interrupted after you've started loading rounds into the weapon. You spill the ammo you were trying to load on the floor.
@@ -587,12 +589,14 @@
 			next_hit_should_apply["aoe_size_bonus"] = round.aoe_size_bonus
 
 		deltimer(combo_reset_timer)
+		deltimer(combo_expiry_warning_timer)
 		// You get a tiny bit of extra time to land your finisher. This is mostly because leaping is a channeled action.
 		// Why are we checking for COMBO_ATTACK2? Because that'll be when the last timer started before we attempt to do our finisher.
 		var/time_to_combo = combo_reset_timer_duration
 		if(combo_stage == COMBO_ATTACK2)
 			time_to_combo += 2 SECONDS
 		combo_reset_timer = addtimer(CALLBACK(src, PROC_REF(ReturnToNormal), user), time_to_combo, TIMER_STOPPABLE)
+		combo_expiry_warning_timer = addtimer(CALLBACK(src, PROC_REF(ComboExpiryWarning), user), time_to_combo - 2 SECONDS, TIMER_STOPPABLE)
 		qdel(round)
 
 /// Creates a spent cartridge, then ejects it if the weapon is SPENT_INSTANTEJECT or stores it if the weapon is SPENT_RELOADEJECT.
@@ -609,15 +613,15 @@
 
 /obj/item/ego_weapon/city/thumb_east/proc/VentHeat(mob/living/carbon/human/user)
 	if(overheat > 0)
-		overheat = 0
-		playsound(src, 'sound/effects/ordeals/steel/gcorp_hiss.ogg', 75, FALSE, 4)
+		playsound(src, 'sound/abnormalities/steam/exhale.ogg', 75, FALSE, 4)
 		to_chat(user, span_danger("You vent [src]'s remaining heat to access its ammo storage!"))
 		var/obj/item/clothing/head/thumb_east_hat/unfortunate_hat = user.get_item_by_slot(ITEM_SLOT_HEAD)
-		if(istype(unfortunate_hat))
+		if(istype(unfortunate_hat) && overheat >= 6)
 			to_chat(user, span_danger("Your [unfortunate_hat.name] burns up from the heat being vented out of your weapon!"))
 			// Placeholder. This animate doesn't actually do anything because the user's icon overlays need to actually get updated... Manually update_body() and update_inv_head() don't seem to work.
 			animate(unfortunate_hat, 1 SECONDS, alpha = 0, color = COLOR_VIVID_RED, pixel_x = 2, pixel_y = 2, easing = CUBIC_EASING)
 			QDEL_IN(unfortunate_hat, 1.1 SECONDS)
+	overheat = 0
 
 ////////////////////////////////////////////////////////////
 // SPECIAL ATTACKS SECTION.
@@ -664,11 +668,18 @@
 /// This proc is just cleanup on the weapon's state, and called whenever a combo ends, is cancelled or times out.
 /// Importantly, it will also apply our overheat bonus to our force, if we have any.
 /obj/item/ego_weapon/city/thumb_east/proc/ReturnToNormal(mob/user)
+	deltimer(combo_expiry_warning_timer)
 	force = initial(force) + overheat
 	next_hit_should_apply = list()
 	if(combo_stage != COMBO_NO_AMMO && combo_stage != COMBO_LUNGE)
 		combo_stage = COMBO_NO_AMMO
 		to_chat(user, span_warning("Your combo resets!"))
+
+/// This proc handles issuing an expiration warning when the combo is about to run out.
+/obj/item/ego_weapon/city/thumb_east/proc/ComboExpiryWarning(mob/living/carbon/human/user)
+	if(combo_stage != COMBO_NO_AMMO)
+		to_chat(user, span_warning("The momentum generated by your previous attack is fading - your combo follow-up window is about to expire!"))
+		SEND_SOUND(user, sound(('sound/abnormalities/armyinblack/black_heartbeat.ogg')) )
 
 /// This proc allows us to start a new combo by lunging and alerts the user in chat.
 /obj/item/ego_weapon/city/thumb_east/proc/ReadyToLunge(mob/user)
@@ -709,7 +720,7 @@
 			target.attackby(src,user)
 		else
 			// Normally we play a boostedlunge.ogg sound when landing a lunge. If we activated lunge but didn't hit our target, play only the bullet detonation sound.
-			playsound(src, detonation_sound, 100, FALSE, 14)
+			playsound(src, detonation_sound, 90, FALSE, 10)
 			to_chat(user, span_warning("Your lunge falls short of hitting your target!"))
 		// We return TRUE regardless of whether we hit them with the lunge or not. What we care about is if we spent the round to lunge at the target.
 		return TRUE
@@ -724,7 +735,7 @@
 	// Telegraph the beginning of the leap to give some chance for counterplay.
 	user.say("*grin")
 	user.visible_message(span_userdanger("[user] prepares to leap towards [target]...!"), span_danger("You prepare to leap towards [target]...!"))
-	playsound(src, 'sound/weapons/ego/thumb_east_podao_leap_prep.ogg', 100, FALSE, 14)
+	playsound(src, 'sound/weapons/ego/thumb_east_podao_leap_prep.ogg', 90, FALSE, 10)
 	// We root the user in place to prevent them from accidentally breaking their combo.
 	user.Immobilize(finisher_windup)
 	// Set this to make sure we can't do some goofy stuff while preparing to leap.
@@ -735,7 +746,7 @@
 		user.say("Firing all rounds!")
 		// Spend a round.
 		if(SpendAmmo(user))
-			playsound(src, detonation_sound, 100, FALSE, 14)
+			playsound(src, detonation_sound, 90, FALSE, 10)
 			// This block of code is for aesthetics regarding the leaping animation.
 			// We figure out whether the target is to our left or right through this (or in the same x).
 			var/horizontal_difference = target.x - user.x
@@ -929,8 +940,8 @@
 /datum/action/item_action/chachihu
 	name = "Savage Tigerslayer's Perfected Flurry of Blades"
 	desc = "Click on a non-adjacent target after using this action to ultrakill them. Requires 10 heat and 6 live rounds. Does not include anti-chasm/lava insurance."
-	icon_icon = 'icons/obj/food/burgerbread.dmi'
-	button_icon_state = "bongbread"
+	icon_icon = 'ModularTegustation/Teguicons/thumb_east_obj.dmi'
+	button_icon_state = "chachihu"
 
 /datum/action/item_action/chachihu/Trigger()
 	// Don't call ..() here or we will accidentally attack_self the weapon, which is supposed to do something else (enable/disable combos)

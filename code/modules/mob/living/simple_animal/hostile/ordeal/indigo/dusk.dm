@@ -141,6 +141,10 @@
 	var/empowered = FALSE
 	/// How many blood units do we lose per life tick? Consider that each blood decal is 50 blood.
 	var/empowered_blood_decay = 60
+	/// Health regened per life tick while empowered
+	var/empowered_periodic_regen = 10
+	/// Health regenned per hit while empowered
+	var/empowered_hit_regen = 15
 
 /mob/living/simple_animal/hostile/ordeal/indigo_dusk/fighter/red/Initialize(mapload)
 	. = ..()
@@ -151,6 +155,7 @@
 
 	if(SSmaptype.maptype in SSmaptype.citymaps)
 		guaranteed_butcher_results += list(/obj/item/head_trophy/indigo_head = 1)
+		empowered_hit_regen -= 10
 
 /mob/living/simple_animal/hostile/ordeal/indigo_dusk/fighter/red/apply_damage(damage, damagetype, def_zone, blocked, forced, spread_damage, wound_bonus, bare_wound_bonus, sharpness, white_healable)
 	. = ..()
@@ -165,6 +170,11 @@
 		return FALSE
 	. = ..()
 
+/mob/living/simple_animal/hostile/ordeal/indigo_dusk/fighter/red/UseSpecialAbility(mob/living/victim, mob/living/user)
+	if(victim.stat >= DEAD)
+		return FALSE
+	. = ..()
+
 /mob/living/simple_animal/hostile/ordeal/indigo_dusk/fighter/red/AttackingTarget(atom/attacked_target)
 	if(trash_disposal_active)
 		return FALSE
@@ -174,7 +184,7 @@
 	. = ..()
 	// Some life regen on hit, if we're empowered.
 	if(empowered)
-		SweeperHealing(melee_damage_upper)
+		SweeperHealing(empowered_hit_regen)
 
 /// Override to use Trash Disposal at range.
 /mob/living/simple_animal/hostile/ordeal/indigo_dusk/fighter/red/OpenFire(atom/A)
@@ -219,7 +229,7 @@
 /mob/living/simple_animal/hostile/ordeal/indigo_dusk/fighter/red/proc/EmpowerDecay(datum/component/bloodfeast/bloodfeast_component)
 	if(bloodfeast_component)
 		bloodfeast_component.blood_amount = max(bloodfeast_component.blood_amount - empowered_blood_decay, 0)
-		SweeperHealing(10)
+		SweeperHealing(empowered_periodic_regen)
 		if(bloodfeast_component.blood_amount <= 0)
 			EmpowerRevert()
 

@@ -2244,6 +2244,7 @@
 	force = 40
 	attack_speed = 1.2
 	damtype = WHITE_DAMAGE
+	special = "This weapon creates an AoE attack after a brief windup when used in-hand, dealing justice-scaling WHITE damage to non-humans hit."
 	attack_verb_continuous = list("smacks", "slaps", "attacks", "pokes")
 	attack_verb_simple = list("smack", "slap", "attack", "poke")
 	hitsound = 'sound/abnormalities/myformempties/attack.ogg'

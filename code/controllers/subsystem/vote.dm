@@ -87,6 +87,11 @@ SUBSYSTEM_DEF(vote)
 				if(choices["Continue Playing"] >= greatest_votes)
 					greatest_votes = choices["Continue Playing"]
 
+			// Non voters will automatically count as votes for default gamespeed.
+			else if(mode == "gamespeed")
+				choices["Normal Speed (1x)"] += length(non_voters)
+				if(choices["Normal Speed (1x)"] >= greatest_votes)
+					greatest_votes = choices["Normal Speed (1x)"]
 	. = list()
 	if(greatest_votes)
 		for(var/option in choices)
@@ -152,6 +157,17 @@ SUBSYSTEM_DEF(vote)
 					var/obj/machinery/computer/communications/C = locate() in GLOB.machines
 					if(C)
 						C.post_status("shuttle")
+
+			if("gamespeed")
+				if(. == "Faster Speed (1.25x)")
+					var/list/new_timelocks = list()
+					for(var/ordeal_time in SSlobotomy_corp.ordeal_timelock)
+						new_timelocks.Add(ordeal_time *= 0.8)
+					SSlobotomy_corp.ordeal_timelock = new_timelocks
+					SSlobotomy_corp.gamespeed_changed = TRUE
+					priority_announce("Personnel must be advised: As a result of changes in internal Enkephalin filtering procedures, Ordeal events for this shift will occur within fewer meltdowns than is the norm.",\
+					"Ordeal Frequency Notice", 'sound/machines/dun_don_alert.ogg')
+
 	if(restart)
 		var/active_admins = FALSE
 		for(var/client/C in GLOB.admins + GLOB.deadmins)
@@ -245,6 +261,14 @@ SUBSYSTEM_DEF(vote)
 				if(SSshuttle.emergency.mode in ignore_vote)
 					return FALSE
 				choices.Add("Initiate Crew Transfer", "Continue Playing")
+
+			if("gamespeed")
+				if(SSlobotomy_corp.gamespeed_changed)
+					to_chat(usr, span_warning("Game speed has already been changed this shift. You cannot vote to change it again."))
+					return FALSE
+				question = "Increase Ordeal Arrival Speed?"
+				choices.Add("Normal Speed (1x)", "Faster Speed (1.25x)")
+
 			if("custom")
 				question = stripped_input(usr,"What is the vote for?")
 				if(!question)

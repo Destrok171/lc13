@@ -102,6 +102,9 @@ SUBSYSTEM_DEF(lobotomy_corp)
 	/// If TRUE - will not count deaths for auto restart
 	var/auto_restart_in_progress = FALSE
 
+	/// Are we playing on increased speed?
+	var/gamespeed_changed = FALSE
+
 /datum/controller/subsystem/lobotomy_corp/Initialize(timeofday)
 	if(SSmaptype.maptype in SSmaptype.combatmaps) // sleep
 		flags |= SS_NO_FIRE
@@ -365,6 +368,11 @@ SUBSYSTEM_DEF(lobotomy_corp)
 	next_ordeal = pick(available_ordeals)
 	all_ordeals[next_ordeal_level] -= next_ordeal
 	next_ordeal_time = max(3, qliphoth_state + next_ordeal.delay + (next_ordeal.random_delay ? rand(-1, 1) : 0))
+
+	// There'll be less meltdowns inbetween ordeals if we're on faster gamespeed.
+	if(gamespeed_changed)
+		next_ordeal_time -= (1 + (max(0, next_ordeal_level - 3))) // Noon and Dusk come 1 meltdown sooner than usual, Midnight comes 2 sooner.
+
 	next_ordeal_level += 1 // Increase difficulty!
 	for(var/obj/structure/sign/ordealmonitor/O in GLOB.lobotomy_devices)
 		O.update_icon()

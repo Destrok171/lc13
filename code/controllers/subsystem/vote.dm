@@ -159,14 +159,16 @@ SUBSYSTEM_DEF(vote)
 						C.post_status("shuttle")
 
 			if("gamespeed")
-				if(. == "Faster Speed (1.25x)")
-					var/list/new_timelocks = list()
-					for(var/ordeal_time in SSlobotomy_corp.ordeal_timelock)
-						new_timelocks.Add(ordeal_time *= 0.8)
-					SSlobotomy_corp.ordeal_timelock = new_timelocks
-					SSlobotomy_corp.gamespeed_changed = TRUE
-					priority_announce("Personnel must be advised: As a result of changes in internal Enkephalin filtering procedures, Ordeal events for this shift will occur within fewer meltdowns than is the norm.",\
-					"Ordeal Frequency Notice", 'sound/machines/dun_don_alert.ogg')
+				var/list/speeds = typesof(/datum/gamespeed_setting)
+				var/list/datum/gamespeed_setting/available_gamespeeds = list()
+				for(var/speed in speeds)
+					available_gamespeeds.Add(new speed())
+				for(var/datum/gamespeed_setting/setting in available_gamespeeds)
+					if((. == setting.player_facing_name) && (SSlobotomy_corp.gamespeed.player_facing_name != .))
+						SSlobotomy_corp.AdjustGamespeed(setting)
+						priority_announce("Personnel must be advised: As a result of changes in internal Enkephalin filtering procedures, Ordeal events for this shift will occur within fewer meltdowns than is the norm. \
+						To compensate for this, Extraction has agreed to speed up Abnormality delivery accordingly.",\
+						"Ordeal Frequency Notice", 'sound/machines/dun_don_alert.ogg')
 
 	if(restart)
 		var/active_admins = FALSE
@@ -263,11 +265,15 @@ SUBSYSTEM_DEF(vote)
 				choices.Add("Initiate Crew Transfer", "Continue Playing")
 
 			if("gamespeed")
-				if(SSlobotomy_corp.gamespeed_changed)
-					to_chat(usr, span_warning("Game speed has already been changed this shift. You cannot vote to change it again."))
-					return FALSE
-				question = "Increase Ordeal Arrival Speed?"
-				choices.Add("Normal Speed (1x)", "Faster Speed (1.25x)")
+				question = "Increase Game Speed?"
+				var/list/speeds = typesof(/datum/gamespeed_setting)
+				var/list/datum/gamespeed_setting/available_gamespeeds = list()
+				for(var/speed in speeds)
+					available_gamespeeds.Add(new speed())
+
+				for(var/datum/gamespeed_setting/speed_setting in available_gamespeeds)
+					if(speed_setting.available_setting)
+						choices.Add(speed_setting.player_facing_name)
 
 			if("custom")
 				question = stripped_input(usr,"What is the vote for?")

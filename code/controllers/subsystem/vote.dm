@@ -89,9 +89,9 @@ SUBSYSTEM_DEF(vote)
 
 			// Non voters will automatically count as votes for default gamespeed.
 			else if(mode == "gamespeed")
-				choices["Normal Speed (1x)"] += length(non_voters)
-				if(choices["Normal Speed (1x)"] >= greatest_votes)
-					greatest_votes = choices["Normal Speed (1x)"]
+				choices["Default Speed (1x)"] += length(non_voters)
+				if(choices["Default Speed (1x)"] >= greatest_votes)
+					greatest_votes = choices["Default Speed (1x)"]
 	. = list()
 	if(greatest_votes)
 		for(var/option in choices)

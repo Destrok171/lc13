@@ -1,8 +1,9 @@
 // I was originally going to make a file in DEFINES with each of these types but then I realized I wasn't actually using them anywhere?
 // I usually just pull these with typesof(/datum/gamespeed_setting) so there's no need for it? I think?
 
-/datum/gamespeed_setting/
-	/// The name that will show up when game speed is being voted for.
+/// This is default gamespeed.
+/datum/gamespeed_setting
+	/// The name that will show up when game speed is being voted for. Also basically used as an ID due to how voting works.
 	var/player_facing_name = "Default Speed (1x)"
 	/// We multiply timelocks and abno arrival times by the inverse of this. For example, coefficient of 1.5 would multiply our timelocks and arrivals by 0.667.
 	var/speed_coefficient = 1

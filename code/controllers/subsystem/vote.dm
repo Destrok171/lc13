@@ -89,9 +89,11 @@ SUBSYSTEM_DEF(vote)
 
 			// Non voters will automatically count as votes for default gamespeed.
 			else if(mode == "gamespeed")
-				choices["Default Speed (1x)"] += length(non_voters)
-				if(choices["Default Speed (1x)"] >= greatest_votes)
-					greatest_votes = choices["Default Speed (1x)"]
+				var/datum/gamespeed_setting/default = new /datum/gamespeed_setting() // I hate having to instantiate this. There has to be a better way...?
+				choices[default.player_facing_name] += length(non_voters)
+				if(choices[default.player_facing_name] >= greatest_votes)
+					greatest_votes = choices[default.player_facing_name]
+
 	. = list()
 	if(greatest_votes)
 		for(var/option in choices)
@@ -159,12 +161,15 @@ SUBSYSTEM_DEF(vote)
 						C.post_status("shuttle")
 
 			if("gamespeed")
+				// We need to pull every gamespeed, then add them to a list to iterate over and compare them to the result.
 				var/list/speeds = typesof(/datum/gamespeed_setting)
 				var/list/datum/gamespeed_setting/available_gamespeeds = list()
 				for(var/speed in speeds)
 					available_gamespeeds.Add(new speed())
 				for(var/datum/gamespeed_setting/setting in available_gamespeeds)
+					// If the vote result matches the gamespeed setting we're currently iterating on's name, and that name isn't the same as the currently active gamespeed.
 					if((. == setting.player_facing_name) && (SSlobotomy_corp.gamespeed.player_facing_name != .))
+						// Adjust the gamespeed to the new one and announce it.
 						SSlobotomy_corp.AdjustGamespeed(setting)
 						priority_announce("Personnel must be advised: As a result of changes in internal Enkephalin filtering procedures, Ordeal events for this shift will occur within fewer meltdowns than is the norm. \
 						To compensate for this, Extraction has agreed to speed up Abnormality delivery accordingly.",\
@@ -266,11 +271,11 @@ SUBSYSTEM_DEF(vote)
 
 			if("gamespeed")
 				question = "Increase Game Speed?"
+				// We have to pull all the game speeds, add them to a list, iterate over it and then, if enabled as a possible speed, add it to the choices.
 				var/list/speeds = typesof(/datum/gamespeed_setting)
 				var/list/datum/gamespeed_setting/available_gamespeeds = list()
 				for(var/speed in speeds)
 					available_gamespeeds.Add(new speed())
-
 				for(var/datum/gamespeed_setting/speed_setting in available_gamespeeds)
 					if(speed_setting.available_setting)
 						choices.Add(speed_setting.player_facing_name)

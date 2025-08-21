@@ -461,6 +461,8 @@ SUBSYSTEM_DEF(lobotomy_corp)
 
 /// Proc called to adjust the gamespeed, hastens abnormality arrival time, sets new timelocks and recalculates next ordeal time.
 /datum/controller/subsystem/lobotomy_corp/proc/AdjustGamespeed(datum/gamespeed_setting/new_gamespeed)
+	if(!new_gamespeed) // If this somehow gets called with a null argument...
+		return FALSE
 	if(gamespeed.speed_coefficient > 0 && new_gamespeed.speed_coefficient > 0) // Checking we don't get something that would really mess things up like negative or 0 value
 		// Timelocks: we need to do these before setting the gamespeed so we can undo potential changes to the original timelock values
 		// As in, original Dawn timelock is 12000. If the speed gets changed by 1.25x, it will go down to 9600. We want to change it back to 12000 before applying
@@ -477,7 +479,10 @@ SUBSYSTEM_DEF(lobotomy_corp)
 		SSabnormality_queue.next_abno_spawn_time *= gamespeed.speed_coefficient
 
 		// Now we can set the gamespeed. We don't need the old one anymore.
+		var/old_gamespeed = gamespeed
 		gamespeed = new_gamespeed
+		if(old_gamespeed != gamespeed) // We check in the extremely unlikely case that this proc gets called with the same gamespeed datum as is being used...
+			qdel(old_gamespeed)
 
 		// Ordeal time
 		SetNextOrdealTime(TRUE)

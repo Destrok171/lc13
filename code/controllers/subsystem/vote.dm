@@ -93,6 +93,7 @@ SUBSYSTEM_DEF(vote)
 				choices[default.player_facing_name] += length(non_voters)
 				if(choices[default.player_facing_name] >= greatest_votes)
 					greatest_votes = choices[default.player_facing_name]
+				qdel(default)
 
 	. = list()
 	if(greatest_votes)
@@ -171,10 +172,12 @@ SUBSYSTEM_DEF(vote)
 					if((. == setting.player_facing_name) && (SSlobotomy_corp.gamespeed.player_facing_name != .))
 						// Adjust the gamespeed to the new one and announce it.
 						SSlobotomy_corp.AdjustGamespeed(setting)
+						available_gamespeeds -= setting
 						priority_announce("Personnel must be advised: As a result of changes in internal Enkephalin filtering procedures, Ordeal events for this shift will occur within fewer meltdowns than is the norm. \
 						To compensate for this, Extraction has agreed to speed up Abnormality delivery accordingly.",\
 						"Ordeal Frequency Notice", 'sound/machines/dun_don_alert.ogg')
-
+				for(var/garbage in available_gamespeeds)
+					qdel(garbage)
 	if(restart)
 		var/active_admins = FALSE
 		for(var/client/C in GLOB.admins + GLOB.deadmins)
@@ -279,7 +282,8 @@ SUBSYSTEM_DEF(vote)
 				for(var/datum/gamespeed_setting/speed_setting in available_gamespeeds)
 					if(speed_setting.available_setting)
 						choices.Add(speed_setting.player_facing_name)
-
+					for(var/garbage in available_gamespeeds)
+						qdel(garbage)
 			if("custom")
 				question = stripped_input(usr,"What is the vote for?")
 				if(!question)

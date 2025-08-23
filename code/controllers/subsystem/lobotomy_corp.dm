@@ -105,7 +105,7 @@ SUBSYSTEM_DEF(lobotomy_corp)
 	var/auto_restart_in_progress = FALSE
 
 	/// Datum which determines how fast the game runs in terms of ordeal frequency, abno arrival time, ordeal timelocks.
-	var/datum/gamespeed_setting/gamespeed = new()
+	var/datum/gamespeed_setting/gamespeed
 
 	/// List which holds a datum of every gamespeed setting. We give this to the admin tool and to the voting subsystem, to populate their choices.
 	// We will store even the disabled ones here, so that admins can still have access to them in their tools.
@@ -118,6 +118,7 @@ SUBSYSTEM_DEF(lobotomy_corp)
 		flags |= SS_NO_FIRE
 		return ..()
 
+	gamespeed = new
 	available_gamespeeds.Add(gamespeed)
 	var/list/speeds = subtypesof(/datum/gamespeed_setting)
 	for(var/setting_type in speeds)
@@ -407,7 +408,7 @@ SUBSYSTEM_DEF(lobotomy_corp)
 	less (or more) of a gap between ordeals than there would be on the normal gamespeed, depending on any future tweaks made to that base type.
 	*/
 	if(QDELETED(gamespeed)) // Conditional means "If null or marked for deletion", from what I can gather
-		gamespeed = new /datum/gamespeed_setting()
+		gamespeed = new /datum/gamespeed_setting
 	/// This is the bare minimum next qliphoth_state at which the next ordeal can be run, to be used in the max() coming up next
 	var/minimum_next_ordeal_time = ((gamespeed.minimum_ordeal_gap[next_ordeal.level]) + (last_ordeal_time))
 	next_ordeal_time = max((minimum_next_ordeal_time), ((last_ordeal_time) + (next_ordeal.delay) + (random_delay_amount) + (gamespeed.meltdowns_per_ordeal_adjustment[next_ordeal.level])))

@@ -89,11 +89,16 @@ SUBSYSTEM_DEF(vote)
 
 			// Non voters will automatically count as votes for default gamespeed.
 			else if(mode == "gamespeed")
-				var/datum/gamespeed_setting/default = new /datum/gamespeed_setting() // I hate having to instantiate this. There has to be a better way...?
-				choices[default.player_facing_name] += length(non_voters)
-				if(choices[default.player_facing_name] >= greatest_votes)
-					greatest_votes = choices[default.player_facing_name]
-				qdel(default)
+				var/datum/gamespeed_setting/default
+				for(var/datum/gamespeed_setting/g_speed in SSlobotomy_corp.available_gamespeeds)
+					if(g_speed.player_facing_name == "Default Speed (1x)")
+						default = g_speed
+						break
+				if(default)
+					choices[default.player_facing_name] += length(non_voters)
+					if(choices[default.player_facing_name] >= greatest_votes)
+						greatest_votes = choices[default.player_facing_name]
+				
 
 	. = list()
 	if(greatest_votes)

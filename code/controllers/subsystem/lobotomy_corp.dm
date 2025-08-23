@@ -105,15 +105,23 @@ SUBSYSTEM_DEF(lobotomy_corp)
 	var/auto_restart_in_progress = FALSE
 
 	/// Datum which determines how fast the game runs in terms of ordeal frequency, abno arrival time, ordeal timelocks.
-	// This is technically a type, not a datum, on initialize
-	var/datum/gamespeed_setting/gamespeed = /datum/gamespeed_setting
+	var/datum/gamespeed_setting/gamespeed = new()
+
+	/// List which holds a datum of every gamespeed setting. We give this to the admin tool and to the voting subsystem, to populate their choices.
+	// We will store even the disabled ones here, so that admins can still have access to them in their tools.
+	/// We'll fill this list in Initialize(). It's probably a bad idea to qdel any of the datums in this list.
+	// The disabled gamespeeds will have to be filtered out in the vote subsystem.
+	var/list/available_gamespeeds = list()
 
 /datum/controller/subsystem/lobotomy_corp/Initialize(timeofday)
 	if(SSmaptype.maptype in SSmaptype.combatmaps) // sleep
 		flags |= SS_NO_FIRE
 		return ..()
 
-	gamespeed = new gamespeed() // It is a datum which could theoretically be modified, so I have to instantiate it to access its contents
+	available_gamespeeds.Add(gamespeed)
+	var/list/speeds = subtypesof(/datum/gamespeed_setting)
+	for(var/setting_type in speeds)
+		available_gamespeeds.Add(new setting_type())
 
 	RegisterSignal(SSdcs, COMSIG_GLOB_MOB_DEATH, PROC_REF(OnMobDeath))
 	addtimer(CALLBACK(src, PROC_REF(SetGoal)), 5 MINUTES)
@@ -393,6 +401,13 @@ SUBSYSTEM_DEF(lobotomy_corp)
 
 	// I feel it's important to put this comment here, from ordeal definition: delay = min(6, level * 2) + 1
 
+	/* This check handles the rare case of having no gamespeed when this is called. We just default to the normal gamespeed by instantiating a new one.
+	An alternative way could be to just add the gamespeed-specific modifiers only if we have an instantiated gamespeed, but I feel that's more inconsistent.
+	This way we ensure the default pacing is whatever the default gamespeed specifies it to be. Otherwise we could have rare, buggy cases where there's
+	less (or more) of a gap between ordeals than there would be on the normal gamespeed, depending on any future tweaks made to that base type.
+	*/
+	if(QDELETED(gamespeed)) // Conditional means "If null or marked for deletion", from what I can gather
+		gamespeed = new /datum/gamespeed_setting()
 	/// This is the bare minimum next qliphoth_state at which the next ordeal can be run, to be used in the max() coming up next
 	var/minimum_next_ordeal_time = ((gamespeed.minimum_ordeal_gap[next_ordeal.level]) + (last_ordeal_time))
 	next_ordeal_time = max((minimum_next_ordeal_time), ((last_ordeal_time) + (next_ordeal.delay) + (random_delay_amount) + (gamespeed.meltdowns_per_ordeal_adjustment[next_ordeal.level])))
@@ -463,29 +478,27 @@ SUBSYSTEM_DEF(lobotomy_corp)
 /datum/controller/subsystem/lobotomy_corp/proc/AdjustGamespeed(datum/gamespeed_setting/new_gamespeed)
 	if(!new_gamespeed) // If this somehow gets called with a null argument...
 		return FALSE
-	if(gamespeed.speed_coefficient > 0 && new_gamespeed.speed_coefficient > 0) // Checking we don't get something that would really mess things up like negative or 0 value
-		// Timelocks: we need to do these before setting the gamespeed so we can undo potential changes to the original timelock values
-		// As in, original Dawn timelock is 12000. If the speed gets changed by 1.25x, it will go down to 9600. We want to change it back to 12000 before applying
-		// any new speed.
+	if(gamespeed.speed_coefficient <= 0 || new_gamespeed.speed_coefficient <= 0) // Checking we don't get something that would really mess things up like negative or 0 value
+		return FALSE
 
-		var/list/new_timelocks = list()
-		for(var/current_timelock in ordeal_timelock)
-			var/modified_timelock = ((current_timelock) * (gamespeed.speed_coefficient)) * (1 / new_gamespeed.speed_coefficient)
-			new_timelocks.Add(modified_timelock)
+	// Timelocks: we need to do these before setting the gamespeed so we can undo potential changes to the original timelock values
+	// As in, original Dawn timelock is 12000. If the speed gets changed by 1.25x, it will go down to 9600. We want to change it back to 12000 before applying
+	// any new speed.
+	var/list/new_timelocks = list()
+	for(var/current_timelock in ordeal_timelock)
+		var/modified_timelock = ((current_timelock) * (gamespeed.speed_coefficient)) * (1 / new_gamespeed.speed_coefficient)
+		new_timelocks.Add(modified_timelock)
 
-		ordeal_timelock = new_timelocks
+	ordeal_timelock = new_timelocks
 
-		// Also set next abno spawn time back to whatever it was.
-		SSabnormality_queue.next_abno_spawn_time *= gamespeed.speed_coefficient
+	// Also set next abno spawn time back to whatever it was.
+	SSabnormality_queue.next_abno_spawn_time *= gamespeed.speed_coefficient
 
-		// Now we can set the gamespeed. We don't need the old one anymore.
-		var/old_gamespeed = gamespeed
-		gamespeed = new_gamespeed
-		if(old_gamespeed != gamespeed) // We check in the extremely unlikely case that this proc gets called with the same gamespeed datum as is being used...
-			qdel(old_gamespeed)
+	// Now we can set the gamespeed. We don't need the old one anymore.
+	gamespeed = new_gamespeed
 
-		// Ordeal time
-		SetNextOrdealTime(TRUE)
+	// Ordeal time
+	SetNextOrdealTime(TRUE)
 
-		// Abno arrival speed
-		SSabnormality_queue.next_abno_spawn_time *= (1 / gamespeed.speed_coefficient)
+	// Abno arrival speed
+	SSabnormality_queue.next_abno_spawn_time *= (1 / gamespeed.speed_coefficient)

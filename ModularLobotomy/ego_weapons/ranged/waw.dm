@@ -520,22 +520,24 @@
 	desc = "Time for a feast! Enjoy the blood-red night imbued with madness to your heart’s content!"
 	icon_state = "banquet"
 	inhand_icon_state = "banquet"
-	special = "This weapon can use stored blood to fire without reloading. \
-		Blood can be collected by attacking using this as a melee weapon."
+	special = "This weapon is a staff that fires blood spikes in much the same way as a regular gun.\n\
+	It is also able to store nearby blood. Alt-click the weapon to summon a friendly bat in exchange for 750 blood.\n\
+	The bat will fight by your side for 15 seconds, and will prioritize attacking the last target you shot with this weapon."
 	force = 36
 	damtype = BLACK_DAMAGE
 	attack_speed = 1.8
 	projectile_path = /obj/projectile/ego_bullet/ego_banquet
 	weapon_weight = WEAPON_MEDIUM
-	fire_delay = 13
+	fire_delay = 15
 	shotsleft = 7
-	reloadtime = 1.6 SECONDS
+	reloadtime = 2.2 SECONDS
 	fire_sound = 'sound/weapons/ego/banquet_fire.ogg'
 	attribute_requirements = list(
 							FORTITUDE_ATTRIBUTE = 60,
 							TEMPERANCE_ATTRIBUTE = 60
 	)
-	var/bloodshot_ready = TRUE
+	/// Holds a reference of all active summoned bats. The projectile this weapon fires will GiveTarget() to all of them on impact.
+	var/list/bound_bats = list()
 
 /obj/item/ego_weapon/ranged/banquet/Initialize()
 	. = ..()
@@ -544,16 +546,12 @@
 /obj/item/ego_weapon/ranged/banquet/examine(mob/user)
 	. = ..()
 	var/datum/component/bloodfeast/bloodfeast = GetComponent(/datum/component/bloodfeast)
-	if(bloodfeast) // dont want to succ blood while contained
+	if(bloodfeast)
 		. += "It has [bloodfeast.blood_amount] units of stored blood."
 
 /obj/item/ego_weapon/ranged/banquet/proc/AdjustThirst(blood_amount)
 	var/datum/component/bloodfeast/bloodfeast = GetComponent(/datum/component/bloodfeast)
 	bloodfeast.AdjustBlood(blood_amount)
-	if(bloodfeast.blood_amount >= 150)
-		bloodshot_ready = TRUE
-		return
-	bloodshot_ready = FALSE
 
 /obj/item/ego_weapon/ranged/banquet/attack(mob/living/target, mob/living/carbon/human/user)
 	if(!CanUseEgo(user))
@@ -564,19 +562,94 @@
 		AdjustThirst(force * justicemod)
 	..()
 
-/obj/item/ego_weapon/ranged/banquet/can_shoot()
-	if(bloodshot_ready)
-		forced_melee = FALSE
-		return TRUE
-	..()
-
 /obj/item/ego_weapon/ranged/banquet/process_chamber()
-	if(bloodshot_ready && !shotsleft)
-		AdjustThirst(-150)
 	// Aesthetic: some bloodsplatters when you fire this staff
 	new /obj/effect/temp_visual/dir_setting/bloodsplatter(get_turf(src), pick(GLOB.alldirs))
 	new /obj/effect/temp_visual/dir_setting/bloodsplatter(get_turf(src), pick(GLOB.alldirs))
 	..()
+
+/obj/item/ego_weapon/ranged/banquet/AltClick(mob/user)
+	. = ..()
+	SummonBat(user)
+
+/obj/item/ego_weapon/ranged/banquet/Destroy(force)
+	for(var/mob/living/simple_animal/hostile/banquet_bat/minion in bound_bats)
+		minion.master = null
+		bound_bats -= minion
+
+	return ..()
+
+
+/obj/item/ego_weapon/ranged/banquet/proc/SummonBat(mob/user)
+	var/datum/component/bloodfeast/bloodfeast = GetComponent(/datum/component/bloodfeast)
+	if(bloodfeast && bloodfeast.blood_amount >= 750)
+		if(do_after(user, 1.5 SECONDS))w
+			var/mob/living/simple_animal/hostile/banquet_bat/minion = new(get_turf(src))
+			minion.master = user
+			minion.faction = user.faction
+			minion.bound_staff = src
+			bound_bats += minion
+			to_chat(user, span_notice("You use [src]'s stored blood to call forth a friendly bat."))
+			playsound(src, 'sound/abnormalities/nosferatu/batspawn.ogg', 65, FALSE)
+		else
+			to_chat(user, span_danger("Your bat-summoning is interrupted!"))
+	else
+		to_chat(user, span_danger("There's not enough blood stored in [src] to summon a bat."))
+
+// Jumpscare mob definition in the weapons file
+/// This is a friendly minion spawned by the Banquet weapon from spending Bloodfeast. It will follow its master, help out for 30 seconds then vanish into the ether.
+// I'm making it its own type instead of a subtype of Nosferatu's because I don't want to inherit a bunch of its stuff like the bloodfeast component.
+/mob/living/simple_animal/hostile/banquet_bat
+	name = "\improper friendly-looking sanguine bat"
+	desc = "It looks like a bat. This one doesn't seem hostile to humans. Seems quite full of blood..."
+	icon = 'ModularLobotomy/_Lobotomyicons/32x32.dmi'
+	icon_state = "nosferatu_mob"
+	icon_living = "nosferatu_mob"
+	icon_dead = "nosferatu_mob"
+	faction = "Station"
+	is_flying_animal = TRUE
+	density = FALSE
+	speak_emote = list("screeches")
+	attack_verb_continuous = "bites"
+	attack_verb_simple = "bite"
+	attack_sound = 'sound/abnormalities/nosferatu/bat_attack.ogg'
+	del_on_death = TRUE
+	health = 200
+	maxHealth = 200
+	damage_coeff = list(RED_DAMAGE = 1.2, WHITE_DAMAGE = 1.8, BLACK_DAMAGE = 0.6, PALE_DAMAGE = 2)
+	melee_damage_type = RED_DAMAGE
+	melee_damage_lower = 15
+	melee_damage_upper = 20
+	move_to_delay = 1.3
+	stat_attack = HARD_CRIT
+	/// Will disappear after this time. It's pretty important they don't last forever or people would build up armies of these.
+	var/despawn_time = 15 SECONDS
+	/// Mob that used the staff to spawn the bats. We will follow them around.
+	var/mob/living/master
+	/// Staff that spawned the bats. Important that we remove this bat from its reference list once we die.
+	var/obj/item/ego_weapon/ranged/banquet/bound_staff
+
+/mob/living/simple_animal/hostile/banquet_bat/Initialize(mapload)
+	. = ..()
+	QDEL_IN(src, despawn_time)
+
+/mob/living/simple_animal/hostile/banquet_bat/Life()
+	. = ..()
+	// If it isn't throwing hands with anything yet, will try to stay close to its master. It's nondense so won't be a bother.
+	if((!target) && (get_dist(src, master) > 4))
+		walk_to(src, master, 1, move_to_delay)
+
+/mob/living/simple_animal/hostile/banquet_bat/AttackingTarget(atom/attacked_target)
+	. = ..()
+	// Small regen on hit.
+	if(isliving(attacked_target))
+		adjustBruteLoss(-10)
+
+/mob/living/simple_animal/hostile/banquet_bat/Destroy(force)
+	master = null
+	if(bound_staff)
+		bound_staff.bound_bats -= src
+	return ..()
 
 /obj/item/ego_weapon/ranged/blind_rage
 	name = "Blind Fire"

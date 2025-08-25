@@ -321,7 +321,17 @@
 		new /obj/effect/temp_visual/dir_setting/bloodsplatter(get_turf(target), pick(GLOB.alldirs))
 		new /obj/effect/temp_visual/dir_setting/bloodsplatter(get_turf(target), pick(GLOB.alldirs))
 		new /obj/effect/temp_visual/dir_setting/bloodsplatter(get_turf(target), pick(GLOB.alldirs))
-
+		// Bonus: if the projectile was shot by a human from the Banquet staff, any spawned bat minions will forcefully target whatever this projectile just hit.
+		if(ishuman(firer))
+			var/mob/living/carbon/human/owner = firer
+			var/obj/item/ego_weapon/ranged/banquet/staff = owner.get_active_held_item()
+			if(istype(staff))
+				for(var/mob/living/simple_animal/hostile/banquet_bat/goon in staff.bound_bats)
+					goon.GiveTarget(target)
+					// Tiny little overlay to make it clear the bats swapped targets.
+					var/mutable_appearance/warning = mutable_appearance('icons/effects/32x64.dmi', "nervous", -ABOVE_MOB_LAYER)
+					goon.add_overlay(warning)
+					addtimer(CALLBACK(goon, TYPE_PROC_REF(/atom, cut_overlay), warning), 1 SECONDS)
 
 /obj/projectile/ego_bullet/ego_blind_rage
 	name = "blind rage"

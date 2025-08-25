@@ -660,8 +660,9 @@
 /mob/living/simple_animal/hostile/banquet_bat/Life()
 	. = ..()
 	// If it isn't throwing hands with anything yet, will try to stay close to its master. It's nondense so won't be a bother.
-	if((!target) && (get_dist(src, master) > 4))
-		walk_to(src, master, 1, move_to_delay)
+	if(master)
+		if((!target) && (get_dist(src, master) > 4))
+			walk_to(src, master, 1, move_to_delay)
 
 /mob/living/simple_animal/hostile/banquet_bat/AttackingTarget(atom/attacked_target)
 	. = ..()

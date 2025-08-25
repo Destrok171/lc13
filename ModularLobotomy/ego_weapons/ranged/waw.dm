@@ -582,8 +582,8 @@
 /obj/item/ego_weapon/ranged/banquet/Destroy(force)
 	for(var/mob/living/simple_animal/hostile/banquet_bat/minion in bound_bats)
 		minion.master = null
-		bound_bats -= minion
 
+	bound_bats = null
 	return ..()
 
 
@@ -670,7 +670,7 @@
 
 /mob/living/simple_animal/hostile/banquet_bat/Destroy(force)
 	master = null
-	if(bound_staff)
+	if(bound_staff && bound_staff.bound_bats)
 		bound_staff.bound_bats -= src
 	return ..()
 

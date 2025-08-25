@@ -617,6 +617,7 @@
 
 /// Called by a signal when the bats are destroyed, removes them from the weapon's reference list of bats.
 /obj/item/ego_weapon/ranged/banquet/proc/DestructionCleanup(mob/living/simple_animal/hostile/banquet_bat/destroyed)
+	SIGNAL_HANDLER
 	bound_bats -= destroyed
 	UnregisterSignal(destroyed, COMSIG_PARENT_QDELETING)
 

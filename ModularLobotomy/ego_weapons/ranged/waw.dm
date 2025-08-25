@@ -530,7 +530,7 @@
 	fire_delay = 13
 	shotsleft = 7
 	reloadtime = 1.6 SECONDS
-	fire_sound = 'sound/weapons/ego/cannon.ogg'
+	fire_sound = 'sound/weapons/ego/banquet_fire.ogg'
 	attribute_requirements = list(
 							FORTITUDE_ATTRIBUTE = 60,
 							TEMPERANCE_ATTRIBUTE = 60
@@ -573,6 +573,9 @@
 /obj/item/ego_weapon/ranged/banquet/process_chamber()
 	if(bloodshot_ready && !shotsleft)
 		AdjustThirst(-150)
+	// Aesthetic: some bloodsplatters when you fire this staff
+	new /obj/effect/temp_visual/dir_setting/bloodsplatter(get_turf(src), pick(GLOB.alldirs))
+	new /obj/effect/temp_visual/dir_setting/bloodsplatter(get_turf(src), pick(GLOB.alldirs))
 	..()
 
 /obj/item/ego_weapon/ranged/blind_rage

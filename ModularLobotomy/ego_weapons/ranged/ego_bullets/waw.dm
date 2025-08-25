@@ -308,9 +308,19 @@
 
 /obj/projectile/ego_bullet/ego_banquet
 	name = "banquet"
-	icon_state = "pulse0"
+	icon_state = "banquet"
 	damage = 120
 	damage_type = BLACK_DAMAGE
+
+/obj/projectile/ego_bullet/ego_banquet/on_hit(atom/target, blocked, pierce_hit)
+	. = ..()
+	// When impacting a living target, play a sound and create some fake bloodsplatters for extra impact.
+	// Kinda tempting to make it spawn real blood so you can go pick it up for Bloodfeast?
+	if(isliving(target))
+		playsound(target, 'sound/weapons/fixer/generic/nail1.ogg', 75, TRUE)
+		new /obj/effect/temp_visual/dir_setting/bloodsplatter(get_turf(target), pick(GLOB.alldirs))
+		new /obj/effect/temp_visual/dir_setting/bloodsplatter(get_turf(target), pick(GLOB.alldirs))
+		new /obj/effect/temp_visual/dir_setting/bloodsplatter(get_turf(target), pick(GLOB.alldirs))
 
 
 /obj/projectile/ego_bullet/ego_blind_rage

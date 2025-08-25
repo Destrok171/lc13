@@ -618,6 +618,7 @@
 /// Called by a signal when the bats are destroyed, removes them from the weapon's reference list of bats.
 /obj/item/ego_weapon/ranged/banquet/proc/DestructionCleanup(mob/living/simple_animal/hostile/banquet_bat/destroyed)
 	bound_bats -= destroyed
+	UnregisterSignal(destroyed, COMSIG_PARENT_QDELETING)
 
 // Jumpscare mob definition in the weapons file
 /// This is a friendly minion spawned by the Banquet weapon from spending Bloodfeast. It will follow its master, help out for 30 seconds then vanish into the ether.
@@ -669,6 +670,10 @@
 	// Small regen on hit.
 	if(isliving(attacked_target))
 		adjustBruteLoss(-lifeleech_amount)
+
+/mob/living/simple_animal/hostile/banquet_bat/Destroy(force)
+	master = null
+	return ..()
 
 /obj/item/ego_weapon/ranged/blind_rage
 	name = "Blind Fire"

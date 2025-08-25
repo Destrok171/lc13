@@ -582,7 +582,7 @@
 /obj/item/ego_weapon/ranged/banquet/Destroy(force)
 	for(var/mob/living/simple_animal/hostile/banquet_bat/minion in bound_bats)
 		minion.master = null
-
+		UnregisterSignal(minion, COMSIG_PARENT_QDELETING)
 	bound_bats = null
 	return ..()
 
@@ -600,9 +600,9 @@
 
 			// Now we spawn the new bat and set all of its stuff.
 			var/mob/living/simple_animal/hostile/banquet_bat/minion = new(get_turf(src))
+			RegisterSignal(minion, COMSIG_PARENT_QDELETING, PROC_REF(DestructionCleanup))
 			minion.master = user
 			minion.faction = user.faction
-			minion.bound_staff = src
 			bound_bats += minion
 			to_chat(user, span_notice("You use [src]'s stored blood to call forth a friendly bat."))
 			playsound(src, 'sound/abnormalities/nosferatu/batspawn.ogg', 65, FALSE)
@@ -614,6 +614,10 @@
 	else
 		to_chat(user, span_danger("There's not enough blood stored in [src] to summon a bat."))
 		return FALSE
+
+/// Called by a signal when the bats are destroyed, removes them from the weapon's reference list of bats.
+/obj/item/ego_weapon/ranged/banquet/proc/DestructionCleanup(mob/living/simple_animal/hostile/banquet_bat/destroyed)
+	bound_bats -= destroyed
 
 // Jumpscare mob definition in the weapons file
 /// This is a friendly minion spawned by the Banquet weapon from spending Bloodfeast. It will follow its master, help out for 30 seconds then vanish into the ether.
@@ -648,8 +652,6 @@
 	var/lifeleech_amount = 10
 	/// Mob that used the staff to spawn the bats. We will follow them around.
 	var/mob/living/master
-	/// Staff that spawned the bats. Important that we remove this bat from its reference list once we die.
-	var/obj/item/ego_weapon/ranged/banquet/bound_staff
 
 /mob/living/simple_animal/hostile/banquet_bat/Initialize(mapload)
 	. = ..()
@@ -667,12 +669,6 @@
 	// Small regen on hit.
 	if(isliving(attacked_target))
 		adjustBruteLoss(-lifeleech_amount)
-
-/mob/living/simple_animal/hostile/banquet_bat/Destroy(force)
-	master = null
-	if(bound_staff && bound_staff.bound_bats)
-		bound_staff.bound_bats -= src
-	return ..()
 
 /obj/item/ego_weapon/ranged/blind_rage
 	name = "Blind Fire"

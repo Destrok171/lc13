@@ -571,8 +571,8 @@
 
 /obj/item/ego_weapon/ranged/banquet/process_chamber()
 	// Aesthetic: some bloodsplatters when you fire this staff
-	new /obj/effect/temp_visual/dir_setting/bloodsplatter(get_turf(src), pick(GLOB.alldirs))
-	new /obj/effect/temp_visual/dir_setting/bloodsplatter(get_turf(src), pick(GLOB.alldirs))
+	for(var/i in 1 to 2)
+		new /obj/effect/temp_visual/dir_setting/bloodsplatter(get_turf(src), pick(GLOB.alldirs))
 	..()
 
 /obj/item/ego_weapon/ranged/banquet/AltClick(mob/user)
@@ -595,10 +595,8 @@
 	if(bloodfeast && bloodfeast.blood_amount >= bat_spawn_cost)
 		if(do_after(user, bat_spawn_windup, target = src))
 			// Woah aesthetic bloodsplatters
-			new /obj/effect/temp_visual/dir_setting/bloodsplatter(get_turf(src), pick(GLOB.alldirs))
-			new /obj/effect/temp_visual/dir_setting/bloodsplatter(get_turf(src), pick(GLOB.alldirs))
-			new /obj/effect/temp_visual/dir_setting/bloodsplatter(get_turf(src), pick(GLOB.alldirs))
-			new /obj/effect/temp_visual/dir_setting/bloodsplatter(get_turf(src), pick(GLOB.alldirs))
+			for(var/i in 1 to 4)
+				new /obj/effect/temp_visual/dir_setting/bloodsplatter(get_turf(src), pick(GLOB.alldirs))
 
 			// Now we spawn the new bat and set all of its stuff.
 			var/mob/living/simple_animal/hostile/banquet_bat/minion = new(get_turf(src))

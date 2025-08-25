@@ -318,9 +318,8 @@
 	// Kinda tempting to make it spawn real blood so you can go pick it up for Bloodfeast?
 	if(isliving(target))
 		playsound(target, 'sound/weapons/fixer/generic/nail1.ogg', 75, TRUE)
-		new /obj/effect/temp_visual/dir_setting/bloodsplatter(get_turf(target), pick(GLOB.alldirs))
-		new /obj/effect/temp_visual/dir_setting/bloodsplatter(get_turf(target), pick(GLOB.alldirs))
-		new /obj/effect/temp_visual/dir_setting/bloodsplatter(get_turf(target), pick(GLOB.alldirs))
+		for(var/i in 1 to 3)
+			new /obj/effect/temp_visual/dir_setting/bloodsplatter(get_turf(target), pick(GLOB.alldirs))
 		// Bonus: if the projectile was shot by a human from the Banquet staff, any spawned bat minions will forcefully target whatever this projectile just hit.
 		if(ishuman(firer))
 			var/mob/living/carbon/human/owner = firer

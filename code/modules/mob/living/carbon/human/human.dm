@@ -224,6 +224,7 @@
 
 /mob/living/carbon/human/get_status_tab_items()
 	. = ..()
+	. += ""
 	. += "Intent: [a_intent]"
 	. += "Move Mode: [m_intent]"
 	if (internal)
